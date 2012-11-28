@@ -1,4 +1,12 @@
-hortonworks
+Description
 ===========
 
-hortonworks chef recipes
+Requirements
+============
+
+Attributes
+==========
+
+Usage
+=====
+
