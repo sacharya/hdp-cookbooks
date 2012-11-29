@@ -11,3 +11,6 @@ package "hadoop-datanode" do
   action :install
 end
 
+service "hadoop-datanode" do
+  action [ :enable, :start ]
+end

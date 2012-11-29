@@ -10,3 +10,8 @@
 package "hadoop-jobtracker" do
   action :install
 end
+
+
+service "hadoop-jobtracker" do
+  action [ :enable, :start ]
+end

@@ -10,3 +10,7 @@
 package "hadoop-tasktracker" do
   action :install
 end
+
+service "hadoop-tasktracker" do
+  action [ :enable, :start ]
+end

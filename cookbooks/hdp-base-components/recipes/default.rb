@@ -69,7 +69,17 @@ package "epel-release" do
   action :install
 end
 
-%w'hadoop hadoop-native hadoop-pipes hadoop-libhdfs snappy snappy-devel openssl hadoop-lzo lzo lzo-devel hadoop-lzo-native'.each do | pack |
+%w'hadoop 
+hadoop-native 
+hadoop-pipes 
+hadoop-libhdfs 
+snappy 
+snappy-devel 
+openssl 
+hadoop-lzo 
+lzo 
+lzo-devel 
+hadoop-lzo-native'.each do | pack |
   package pack do
     action :install
   end
@@ -89,16 +99,82 @@ execute "symlink snappy in" do
   end
 end
 
+# Create cache directory
+directory "/var/lib/hadoop/cache" do
+  owner "root"
+  group "root"
+  mode "1777"
+  recursive true
+  action :create
+end
+
 directory "/etc/hadoop/conf.chef" do
   owner "root"
   group "root"
   mode "0755"
   action :create
- end
+end
 
 execute "alternatives configured confdir" do
   command "alternatives --install /etc/hadoop/conf hadoop-conf /etc/hadoop/conf.chef 90"
   not_if do
     ::File.readlink("/etc/alternatives/hadoop-conf") == "/etc/hadoop/conf.chef"
   end
+end
+
+
+# Install base configuration (will be the same on every install)
+
+%w'capacity-scheduler.xml 
+configuration.xsl 
+fair-scheduler.xml 
+hadoop-env.sh 
+hadoop-policy.xml 
+log4j.properties 
+mapred-queue-acls.xml 
+hadoop-metrics.properties
+hadoop-metrics2.properties
+taskcontroller.cfg'.each do | f |
+  template "/etc/hadoop/conf.chef/#{f}" do
+    source "#{f}.erb"
+    mode 0755
+    user "root"
+    group "root"
+    only_if do
+      not ::File.exists?("/etc/hadoop/conf.chef/#{f}") || node[:hortonworks_hdp][:manage_all_config_files] == true
+    end
+  end
+end
+
+template "/etc/hadoop/conf.chef/core-site.xml" do
+  source "core-site.xml.erb"
+  mode 0755
+  user "root"
+  group "root"
+  variables({
+              :namenode_ip => node[:hortonworks_hdp][:master_node_ip],
+              :namenode_port => node[:hortonworks_hdp][:namenode][:port]
+            })
+end
+
+template "/etc/hadoop/conf.chef/hdfs-site.xml" do
+  source "hdfs-site.xml.erb"
+  mode 0755
+  user "root"
+  group "root"
+  variables({
+              :safemode_min_datanodes => node[:hortonworks_hdp][:namenode][:safemode_min_datanodes],
+              :num_dfs_replicas => node[:hortonworks_hdp][:namenode][:num_dfs_replicas]
+            })
+end
+
+template "/etc/hadoop/conf.chef/mapred-site.xml" do
+  source "mapred-site.xml.erb"
+  owner "root"
+  group "root"
+  mode 0755
+  variables({
+              :jobtracker_ip => node[:hortonworks_hdp][:master_node_ip],
+              :jobtracker_port => node[:hortonworks_hdp][:jobtracker][:port]
+            })
 end
