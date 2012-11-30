@@ -1,8 +1,9 @@
 action :munge do
+  filters = new_resource.filter.class == Regexp ? [ new_resource.filter ] : new_resource.filter
   rebuilt_config = Array.new
   ::File.open(new_resource.config_file, "r") do | f |
     while line = f.gets
-      if line =~ new_resource.filter
+      if filters.any? { | filter | line =~ filter }
         next
       else
         rebuilt_config << line

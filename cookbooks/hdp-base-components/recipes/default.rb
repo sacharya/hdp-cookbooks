@@ -11,6 +11,30 @@
 # necessary package install. Anything specific to hadoop
 # roles will be found in those recipes
 
+# First things first, determine the master_node_ip. This field is what
+# all the services will phone home to.
+# This can be any of the following (checked in order):
+# 1) manually set in the environment (could be a load balancer VIP)
+# 2) the ip address on the link specified in hadoop_network on the
+# master-hadoop node
+# on the master node3) 127.0.0.1 (default)
+conditions = [nil, '']
+if conditions.all? { | cond | node[:hortonworks_hdp][:hadoop_master_ip] != cond }
+  $master_node_ip = node[:hortonworks_hdp][:hadoop_master_ip]
+elsif conditions.all? { | cond | node[:hortonworks_hdp][:hadoop_network_interface] != cond }
+  query = "role:hadoop-master AND chef_environment:#{node.chef_environment}"
+  result, _, _ = Chef::Search::Query.new.search(:node, query)
+  result = [node] if result == []
+  result[0][:network][:interfaces][node[:hortonworks_hdp][:hadoop_network_interface]].addresses.each do | (k,v) |
+    if v[:family] == "inet"
+      $master_node_ip = k
+      break
+    end
+  end
+else 
+  $master_node_ip = '127.0.0.1'
+end
+
 # System tweaks to increase performance and reliability
 
 # Increase Filesystem limits.
@@ -46,6 +70,13 @@ swapfile "create swapfile" do
   swapsize $swapsize
 end
 
+# Disable IPTables
+# There isn't a reliable way to manage iptables w/o monitoring. Please
+# use security groups or security provided by your cloud provider.
+
+service "iptables" do
+  action [ :stop, :disable ]
+end
 
 
 # Package Installation
@@ -152,7 +183,7 @@ template "/etc/hadoop/conf.chef/core-site.xml" do
   user "root"
   group "root"
   variables({
-              :namenode_ip => node[:hortonworks_hdp][:master_node_ip],
+              :namenode_ip => $master_node_ip,
               :namenode_port => node[:hortonworks_hdp][:namenode][:port]
             })
 end
@@ -174,7 +205,51 @@ template "/etc/hadoop/conf.chef/mapred-site.xml" do
   group "root"
   mode 0755
   variables({
-              :jobtracker_ip => node[:hortonworks_hdp][:master_node_ip],
+              :jobtracker_ip => $master_node_ip,
               :jobtracker_port => node[:hortonworks_hdp][:jobtracker][:port]
             })
 end
+
+
+# Finally throw down /etc/hosts based on the cluster 
+
+ruby_block "apply hostfile changes" do
+  block do
+    query = "chef_environment:#{node.chef_environment}"
+    results, _, _ = Chef::Search::Query.new.search(:node, query)
+    hdp_nodes = Hash.new
+    results.each do | result |
+      result[:network][:interfaces][node[:hortonworks_hdp][:hadoop_network_interface]].addresses.each do | (k,v) |
+        hdp_nodes[result.name] = k if v[:family] == 'inet'
+      end
+    end
+    marker_tpl = "# *** %s OF CHEF MANAGED Hosts ***\n"
+    hostfile_entries = Array.new
+    File.open('/etc/hosts', 'r') do | hostfile |
+      marker = false
+      while (line = hostfile.gets)
+        if line =~/^#{marker_tpl.gsub('*', '\*') % ["(START|END)"]}/
+          marker = line =~ /START/ ? true : false
+          next
+        end
+        if marker == false
+          unless line =~ /#{node.name}/
+            print "I AM GOING TO HOSTFILE THIS SHIZZZ::::::::: #{line} :: #{node.name}\n"
+            hostfile_entries << line 
+          end
+        end
+      end
+      hostfile_entries << marker_tpl % ['START']
+      hdp_nodes.each do | (k,v) |
+        hostfile_entries << "#{v} #{k}\n"
+      end
+      hostfile_entries << marker_tpl % ['END']
+    end
+    File.open('/etc/hosts', 'w') do | hostfile |
+      hostfile_entries.each do | entry |
+        hostfile.write(entry)
+      end
+    end
+  end
+end
+

@@ -20,3 +20,6 @@ doc/
 # emacs 
 [#]*[#]
 *~
+
+#chef
+.chef/

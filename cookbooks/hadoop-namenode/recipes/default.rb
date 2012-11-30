@@ -13,18 +13,9 @@ end
 
 execute "format hdfs" do
   command "su - hdfs -c '/usr/lib/hadoop/bin/hadoop namenode -format'"
-  notifies :create, "ruby_block[format hdfs run flag]", :immediately
   not_if do
-    node[:hortonworks_hdp][:hdfs_format_complete] == true
+    "/usr/lib/hadoop/bin/hadoop fs -ls /"
   end
-end
-
-ruby_block "format hdfs run flag" do
-  block do
-    node.set[:hortonworks_hdp][:hdfs_format_complete] = true
-    node.save
-  end
-  action :nothing
 end
 
 service "hadoop-namenode" do
