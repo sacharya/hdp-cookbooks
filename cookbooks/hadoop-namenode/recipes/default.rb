@@ -14,7 +14,7 @@ end
 execute "format hdfs" do
   command "su - hdfs -c '/usr/lib/hadoop/bin/hadoop namenode -format'"
   not_if do
-    "/usr/lib/hadoop/bin/hadoop fs -ls /"
+    ::File.exists?('/var/lib/hadoop/cache/hadoop/dfs/name')
   end
 end
 

@@ -24,7 +24,10 @@ if conditions.all? { | cond | node[:hortonworks_hdp][:hadoop_master_ip] != cond 
 elsif conditions.all? { | cond | node[:hortonworks_hdp][:hadoop_network_interface] != cond }
   query = "role:hadoop-master AND chef_environment:#{node.chef_environment}"
   result, _, _ = Chef::Search::Query.new.search(:node, query)
-  result = [node] if result == []
+  # If we got no results, assume this is the master. 
+  if result == [] && node.run_list.any?{|t| t == 'role[hadoop-master]'}
+    results = [node]
+  end
   result[0][:network][:interfaces][node[:hortonworks_hdp][:hadoop_network_interface]].addresses.each do | (k,v) |
     if v[:family] == "inet"
       $master_node_ip = k
@@ -234,7 +237,6 @@ ruby_block "apply hostfile changes" do
         end
         if marker == false
           unless line =~ /#{node.name}/
-            print "I AM GOING TO HOSTFILE THIS SHIZZZ::::::::: #{line} :: #{node.name}\n"
             hostfile_entries << line 
           end
         end
