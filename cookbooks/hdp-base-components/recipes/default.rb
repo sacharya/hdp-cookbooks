@@ -28,11 +28,15 @@ elsif conditions.all? { | cond | node[:hortonworks_hdp][:hadoop_network_interfac
   if result == [] && node.run_list.any?{|t| t == 'role[hadoop-master]'}
     results = [node]
   end
-  result[0][:network][:interfaces][node[:hortonworks_hdp][:hadoop_network_interface]].addresses.each do | (k,v) |
-    if v[:family] == "inet"
-      $master_node_ip = k
-      break
+  begin
+    result[0][:network][:interfaces][node[:hortonworks_hdp][:hadoop_network_interface]].addresses.each do | (k,v) |
+      if v[:family] == "inet"
+        $master_node_ip = k
+        break
+      end
     end
+  rescue
+    $master_node_ip = '127.0.0.1'
   end
 else 
   $master_node_ip = '127.0.0.1'
@@ -222,8 +226,12 @@ ruby_block "apply hostfile changes" do
     results, _, _ = Chef::Search::Query.new.search(:node, query)
     hdp_nodes = Hash.new
     results.each do | result |
-      result[:network][:interfaces][node[:hortonworks_hdp][:hadoop_network_interface]].addresses.each do | (k,v) |
-        hdp_nodes[result.name] = k if v[:family] == 'inet'
+      begin
+        result[:network][:interfaces][node[:hortonworks_hdp][:hadoop_network_interface]].addresses.each do | (k,v) |
+          hdp_nodes[result.name] = k if v[:family] == 'inet'
+        end
+      rescue
+	puts "Probably installing master node..."
       end
     end
     marker_tpl = "# *** %s OF CHEF MANAGED Hosts ***\n"
