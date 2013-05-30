@@ -18,6 +18,19 @@
 # 2) the ip address on the link specified in hadoop_network on the
 # master-hadoop node
 # on the master node3) 127.0.0.1 (default)
+user node.hortonworks_hdp.hdfs.user do
+  comment "hdfs user"
+  home    "/usr/lib/hadoop"
+  shell   "/bin/bash"
+  action  :create
+end
+
+group node.hortonworks_hdp.hadoop.group do
+  (m = []) << node.hortonworks_hdp.hdfs.user
+  members m
+  action :create
+end
+
 conditions = [nil, '']
 if conditions.all? { | cond | node[:hortonworks_hdp][:hadoop_master_ip] != cond }
   $master_node_ip = node[:hortonworks_hdp][:hadoop_master_ip]

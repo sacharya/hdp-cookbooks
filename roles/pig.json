@@ -1,0 +1,13 @@
+{
+    "name": "pig",
+    "chef_type": "role",
+    "description": "Pig",
+    "run_list": [
+    	"recipe[hdp-base-components]",
+        "recipe[pig]"
+    ],
+    "default_attributes": {
+    },
+    "override_attributes": {
+    }
+}

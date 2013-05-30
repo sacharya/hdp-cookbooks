@@ -1,0 +1,13 @@
+{
+    "name": "hive",
+    "chef_type": "role",
+    "description": "Hive",
+    "run_list": [
+    	"recipe[hdp-base-components]",
+        "recipe[hive]"
+    ],
+    "default_attributes": {
+    },
+    "override_attributes": {
+    }
+}

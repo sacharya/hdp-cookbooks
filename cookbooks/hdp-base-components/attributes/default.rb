@@ -1,3 +1,6 @@
+default[:hortonworks_hdp][:hdfs][:user] = "hdfs"
+default[:hortonworks_hdp][:hadoop][:group] = "hadoop"
+
 default[:hortonworks_hdp][:manage_all_config_files] = false
 default[:hortonworks_hdp][:nofiles] = 32768
 default[:hortonworks_hdp][:swapfile_location] = "/swapfile"
