@@ -22,6 +22,10 @@ package "hive" do
   action :install
 end
 
+package 'mysql-connector-java' do
+    action :install
+end
+
 directory "/etc/hive/conf.chef" do
   owner node.hortonworks_hdp.hive.user
   group node.hortonworks_hdp.hadoop.group

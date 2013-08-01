@@ -20,7 +20,7 @@ limitations under the License.
 <configuration>
  <property>
     <name>javax.jdo.option.ConnectionURL</name>
-    <value>TODO-HIVE-JDBC-URL</value>
+    <value><%= node[:hive][:javax_jdo_option_ConnectionURL] %></value>
     <description>JDBC connect string for a JDBC metastore</description>
   </property>
   
@@ -31,19 +31,19 @@ limitations under the License.
 
   <property>
     <name>javax.jdo.option.ConnectionDriverName</name>
-    <value>TODO-HIVE-JDBC-DRIVER</value>
+    <value><%= node[:hive][:javax_jdo_option_ConnectionDriverName] %></value>
     <description>Driver class name for a JDBC metastore</description>
   </property>
 
   <property>
     <name>javax.jdo.option.ConnectionUserName</name>
-    <value>TODO-HIVE-METASTORE-USER-NAME</value>
+    <value><%= node[:hive][:javax_jdo_option_ConnectionUserName] %></value>
     <description>username to use against metastore database</description>
   </property>
 
   <property>
     <name>javax.jdo.option.ConnectionPassword</name>
-    <value>TODO-HIVE-METASTORE-USER-PASSWD</value>
+    <value><%= node[:hive][:javax_jdo_option_ConnectionPassword] %></value>
     <description>password to use against metastore database</description>
   </property>
 
@@ -97,7 +97,7 @@ limitations under the License.
 
   <property>
     <name>hive.metastore.uris</name>
-    <value>thrift://TODO-HIVE-METASTORE-SERVER-HOST:9083</value>
+    <value><%= node[:hive][:hive_metastore_uris] %></value>
     <description>URI for client to contact metastore server</description>
   </property>
 
