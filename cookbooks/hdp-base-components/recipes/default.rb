@@ -37,22 +37,14 @@ if conditions.all? { | cond | node[:hortonworks_hdp][:hadoop_master_ip] != cond 
 elsif conditions.all? { | cond | node[:hortonworks_hdp][:hadoop_network_interface] != cond }
   query = "role:hadoop-master AND chef_environment:#{node.chef_environment}"
   result, _, _ = Chef::Search::Query.new.search(:node, query)
+
   # If we got no results, assume this is the master. 
   if result == [] && node.run_list.any?{|t| t == 'role[hadoop-master]'}
-    results = [node]
+    result = [node]
   end
-  begin
-    result[0][:network][:interfaces][node[:hortonworks_hdp][:hadoop_network_interface]].addresses.each do | (k,v) |
-      if v[:family] == "inet"
-        $master_node_ip = k
-        break
-      end
-    end
-  rescue
-    $master_node_ip = '127.0.0.1'
-  end
+	$master_node_ip = result[0][:hostname]
 else 
-  $master_node_ip = '127.0.0.1'
+  $master_node_ip = node[:hostname]
 end
 
 # System tweaks to increase performance and reliability
@@ -238,13 +230,15 @@ ruby_block "apply hostfile changes" do
     query = "chef_environment:#{node.chef_environment}"
     results, _, _ = Chef::Search::Query.new.search(:node, query)
     hdp_nodes = Hash.new
+    # Add the current node to the results manually
+    results << node
     results.each do | result |
       begin
         result[:network][:interfaces][node[:hortonworks_hdp][:hadoop_network_interface]].addresses.each do | (k,v) |
           hdp_nodes[result.name] = k if v[:family] == 'inet'
-        end
+	      end
       rescue
-	puts "Probably installing master node..."
+	      puts "Probably missing the current node from chef search index..."
       end
     end
     marker_tpl = "# *** %s OF CHEF MANAGED Hosts ***\n"
